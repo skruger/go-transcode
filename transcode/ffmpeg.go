@@ -3,20 +3,8 @@ package transcode
 import (
 	"fmt"
 	ffmpeg_go "github.com/u2takey/ffmpeg-go"
-	"os/exec"
+	"go-transcode/config"
 )
-
-type Profile struct {
-	//ScaleOptions map[string]string
-	Width         int               `json:"Width"`
-	Height        int               `json:"Height"`
-	OutputOptions map[string]string `json:"OutputOptions"`
-}
-
-type Output struct {
-	Profile  Profile
-	Filename string
-}
 
 type TranscodeSession struct {
 	InputFile string
@@ -28,18 +16,12 @@ func NewTranscodeSession(file string) *TranscodeSession {
 	}
 }
 
-func (ts *TranscodeSession) BuildTranscodeStream(outputs []Output) (*exec.Cmd, error) {
-	//inputStreams := make([]*ffmpeg_go.Stream, len(ts.InputFiles))
-	//for num, file := range ts.InputFiles {
-	//	inputStreams[num] = ffmpeg_go.Input(file)
-	//}
-	//
-	//stream := ffmpeg_go.Concat(inputStreams).Split()
+func (ts *TranscodeSession) BuildTranscodeStream(options config.TranscodeOptions) (*ffmpeg_go.Stream, error) {
 	input := ffmpeg_go.Input(ts.InputFile)
 	stream := input.Split()
 
-	outputStreams := make([]*ffmpeg_go.Stream, len(outputs))
-	for num, output := range outputs {
+	outputStreams := make([]*ffmpeg_go.Stream, len(options.Outputs))
+	for num, output := range options.Outputs {
 		filtered := stream.Get(fmt.Sprintf("%d", num)).Filter(
 			"scale",
 			ffmpeg_go.Args{fmt.Sprintf("%d:%d", output.Profile.Width, output.Profile.Height)},
@@ -54,15 +36,11 @@ func (ts *TranscodeSession) BuildTranscodeStream(outputs []Output) (*exec.Cmd, e
 		)
 	}
 
-	//audioKwargs := ffmpeg_go.KwArgs{
-	//	"b:a":      "128k",
-	//	"c:a":      "aac",
-	//	"f":        "mp4",
-	//	"movflags": "frag_keyframe+empty_moov",
-	//}
+	outputStream := ffmpeg_go.MergeOutputs(outputStreams...)
 
-	//outputStreams[len(outputs)] = input.
-	//	Audio().Output("output_audio.mp4", audioKwargs)
+	if len(options.GlobalArgs) > 0 {
+		outputStream = outputStream.GlobalArgs(options.GlobalArgs...)
+	}
 
-	return ffmpeg_go.MergeOutputs(outputStreams...).ErrorToStdOut().Compile(), nil
+	return outputStream.ErrorToStdOut(), nil
 }
