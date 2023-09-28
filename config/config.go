@@ -18,9 +18,30 @@ type Output struct {
 
 type Outputs []Output
 
+type HlsEncryption struct {
+	Mode              string `mapstructure:"Mode"`
+	Key               string `mapstructure:"Key"`
+	IVMode            string `mapstructure:"IVMode"`
+	KeyUri            string `mapstructure:"KeyUri"`
+	KeyFormat         string `mapstructure:"KeyFormat"`
+	KeyFormatVersions string `mapstructure:"KeyFormatVersions"`
+}
+
+type PackageHls struct {
+	HlsVersion       string         `mapstructure:"HlsVersion"`
+	OutputDir        string         `mapstrucutre:"OutputDir"`
+	OutputSingleFile bool           `mapstructure:"OutputSingleFile"`
+	AudioFormat      string         `mapstructure:"AudioFormat"`
+	SegmentDuration  string         `mapstructure:"SegmentDuration"`
+	BaseUrl          string         `mapstructure:"BaseUrl"`
+	Encryption       *HlsEncryption `mapstructure:"Encryption"`
+}
+
 type TranscodeOptions struct {
-	Outputs    Outputs  `mapstructure:"Outputs"`
-	GlobalArgs []string `mapstructure:"GlobalArgs"`
+	Outputs          Outputs     `mapstructure:"Outputs"`
+	GlobalArgs       []string    `mapstructure:"GlobalArgs"`
+	OverwriteOutputs bool        `mapstructure:"OverwriteOutputs"`
+	PackageHls       *PackageHls `mapstructure:"PackageHls"`
 }
 
 type TranscodeRequest struct {

@@ -4,10 +4,12 @@ import (
 	"fmt"
 	ffmpeg_go "github.com/u2takey/ffmpeg-go"
 	"go-transcode/config"
+	"go-transcode/stages"
 )
 
 type TranscodeSession struct {
 	InputFile string
+	Outputs   []stages.MediaOut
 }
 
 func NewTranscodeSession(file string) *TranscodeSession {
@@ -20,6 +22,7 @@ func (ts *TranscodeSession) BuildTranscodeStream(options config.TranscodeOptions
 	input := ffmpeg_go.Input(ts.InputFile)
 	stream := input.Split()
 
+	ts.Outputs = make([]stages.MediaOut, len(options.Outputs))
 	outputStreams := make([]*ffmpeg_go.Stream, len(options.Outputs))
 	for num, output := range options.Outputs {
 		filtered := stream.Get(fmt.Sprintf("%d", num)).Filter(
@@ -34,6 +37,10 @@ func (ts *TranscodeSession) BuildTranscodeStream(options config.TranscodeOptions
 			output.Filename,
 			kwargs,
 		)
+		ts.Outputs[num] = stages.MediaOut{
+			MediaType: stages.OutputVideo,
+			FileName:  output.Filename,
+		}
 	}
 
 	outputStream := ffmpeg_go.MergeOutputs(outputStreams...)

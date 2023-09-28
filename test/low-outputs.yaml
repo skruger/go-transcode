@@ -22,3 +22,10 @@ outputs:
             map: a
             vcodec: h264_qsv
       filename: output_360_700k.mp4
+
+globalargs:
+    - "-y"
+
+packagehls:
+    segmentduration: 4
+    outputdir: "c:\\Video\\hls_package_test"

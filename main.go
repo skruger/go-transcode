@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"go-transcode/config"
+	"go-transcode/streampackage"
 	"go-transcode/transcode"
 	"gopkg.in/yaml.v3"
 	"log"
@@ -69,4 +71,20 @@ func main() {
 
 	duration := time.Now().Sub(start)
 	log.Printf("Transcoding complete in %v", duration)
+
+	if options.PackageHls != nil {
+		hls := streampackage.NewHlsPackage(ts.Outputs)
+		hlsCmd, err := hls.BuildPackageCommand(*options.PackageHls)
+		if err != nil {
+			log.Panicf("Unable to build hls package command: %s", err)
+		}
+		log.Printf("Package HLS: %s", hlsCmd.String())
+		var stderr bytes.Buffer
+		hlsCmd.Stderr = &stderr
+		err = hlsCmd.Run()
+		if err != nil {
+			log.Panicf("Error running hls package command: %s: %s", err, stderr.String())
+		}
+		log.Print("Done")
+	}
 }
