@@ -26,6 +26,6 @@ outputs:
 globalargs:
     - "-y"
 
-packagehls:
-    segmentduration: 4
-    outputdir: "c:\\Video\\hls_package_test"
+#packagehls:
+#    segmentduration: 4
+#    outputdir: "c:\\Video\\hls_package_test"

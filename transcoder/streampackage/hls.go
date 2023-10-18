@@ -2,8 +2,8 @@ package streampackage
 
 import (
 	"fmt"
-	"go-transcode/config"
-	"go-transcode/stages"
+	"go-transcode/transcoder/config"
+	"go-transcode/transcoder/stages"
 	"os/exec"
 )
 

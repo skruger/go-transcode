@@ -3,8 +3,8 @@ package transcode
 import (
 	"fmt"
 	ffmpeg_go "github.com/u2takey/ffmpeg-go"
-	"go-transcode/config"
-	"go-transcode/stages"
+	"go-transcode/transcoder/config"
+	"go-transcode/transcoder/stages"
 )
 
 type TranscodeSession struct {
