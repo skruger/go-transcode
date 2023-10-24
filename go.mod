@@ -1,4 +1,4 @@
-module go-transcode
+module github.com/skruger/privatestudio
 
 go 1.20
 
