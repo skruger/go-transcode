@@ -2,9 +2,9 @@ package transcode
 
 import (
 	"fmt"
+	"github.com/skruger/privatestudio/transcoder/config"
+	"github.com/skruger/privatestudio/transcoder/stages"
 	ffmpeg_go "github.com/u2takey/ffmpeg-go"
-	"go-transcode/config"
-	"go-transcode/stages"
 )
 
 type TranscodeSession struct {

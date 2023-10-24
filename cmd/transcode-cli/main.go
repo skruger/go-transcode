@@ -3,9 +3,9 @@ package main
 import (
 	"bytes"
 	"flag"
-	"go-transcode/config"
-	"go-transcode/streampackage"
-	"go-transcode/transcode"
+	tc "github.com/skruger/privatestudio/transcoder/config"
+	"github.com/skruger/privatestudio/transcoder/streampackage"
+	"github.com/skruger/privatestudio/transcoder/transcode"
 	"gopkg.in/yaml.v3"
 	"log"
 	"os"
@@ -25,12 +25,12 @@ func main() {
 			log.Panicf("Can't write output file %s: %s", tsWriteOptionsPtr, err)
 		}
 		defer file.Close()
-		defaultsBytes, _ := yaml.Marshal(config.DefaultOptions())
+		defaultsBytes, _ := yaml.Marshal(tc.DefaultOptions())
 		file.Write(defaultsBytes)
 		return
 	}
 
-	options := config.DefaultOptions()
+	options := tc.DefaultOptions()
 
 	if *tsOptionsPtr != "" {
 		data, err := os.ReadFile(*tsOptionsPtr)
@@ -38,7 +38,7 @@ func main() {
 			log.Panicf("unable to open config file %s: %s", *tsOptionsPtr, err)
 		}
 
-		fileOptions, err := config.LoadTranscodeOptions(data)
+		fileOptions, err := tc.LoadTranscodeOptions(data)
 		if err != nil {
 			log.Panicf("unable to parse transcode options file %s: %s", *tsOptionsPtr, err)
 		}

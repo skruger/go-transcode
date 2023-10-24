@@ -1,2 +1,2 @@
-# go-transcode
-A go wrapper for transcoding with ffmpeg 
+# Private Studio
+Manage video assets through transcodeing and packaging.
