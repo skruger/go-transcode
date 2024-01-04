@@ -1,0 +1,13 @@
+<h3>Source Assets</h3>
+<table class="table table-sm">
+    <tr>
+        <th>Key</th>
+        <th>Filename</th>
+    </tr>
+    {{range $index, $item := .sourceAssets}}
+    <tr>
+        <td>{{$item.Key}}</td>
+        <td>{{$item.Filename}}</td>
+    </tr>
+    {{end}}
+</table>

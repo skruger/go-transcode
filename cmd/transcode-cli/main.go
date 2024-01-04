@@ -3,13 +3,14 @@ package main
 import (
 	"bytes"
 	"flag"
+	"log"
+	"os"
+	"time"
+
 	tc "github.com/skruger/privatestudio/transcoder/config"
 	"github.com/skruger/privatestudio/transcoder/streampackage"
 	"github.com/skruger/privatestudio/transcoder/transcode"
 	"gopkg.in/yaml.v3"
-	"log"
-	"os"
-	"time"
 )
 
 func main() {
