@@ -37,9 +37,9 @@ type BaseAsset interface {
 	SaveAssetMetadata(metadata AssetMetadata) error
 }
 
-type SourceAsset interface {
-	BaseAsset
-}
+//type SourceAsset interface {
+//	BaseAsset
+//}
 
 type TranscodedAsset interface {
 	BaseAsset
@@ -50,8 +50,8 @@ type ManifestAsset interface {
 }
 
 type AssetStorage interface {
-	GetSourceAsset(key string) (SourceAsset, error)
-	FindSourceAssets(filters map[string]string, offset string) ([]SourceAsset, error)
+	//GetSourceAsset(key string) (SourceAsset, error)
+	//FindSourceAssets(filters map[string]string, offset string) ([]SourceAsset, error)
 
 	GetTranscodedAsset(key string) (TranscodedAsset, error)
 	FindTranscodedAssets(filters map[string]string, offset string) ([]TranscodedAsset, error)
@@ -61,5 +61,5 @@ type AssetStorage interface {
 }
 
 type ProfileStorage interface {
-	GetOutputSet(key string) ()
+	GetOutputSet(key string)
 }
