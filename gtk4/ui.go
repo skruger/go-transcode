@@ -5,13 +5,16 @@ import (
 	_ "embed"
 	"fmt"
 	"github.com/diamondburned/gotk4/pkg/gio/v2"
+	"github.com/diamondburned/gotk4/pkg/glib/v2"
 	"github.com/diamondburned/gotk4/pkg/gtk/v4"
 	"github.com/labstack/gommon/log"
 	"github.com/skruger/privatestudio/dao"
 	"github.com/skruger/privatestudio/transcoder"
+	"github.com/skruger/privatestudio/transcoder/defaults"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type ColumnType int
@@ -34,6 +37,7 @@ type windowState struct {
 	app            *gtk.Application
 	status         *gtk.Statusbar
 	sourceList     *sourceListData
+	profileList    *transcodeOptionData
 	statusMessages chan string
 	daoInstance    *dao.DaoInstance
 }
@@ -54,7 +58,7 @@ func newWindowState(db *sql.DB) *windowState {
 		status.Push(0, "This is a status!")
 
 		sourcesList := builder.GetObject("sourcesList").Cast().(*gtk.ListView)
-		sourceListState := newSourceList(sourcesList)
+		sourceListState := newSourceList(sourcesList, state.sourceSelected)
 
 		state.builder = builder
 		state.window = window
@@ -62,11 +66,26 @@ func newWindowState(db *sql.DB) *windowState {
 		state.sourceList = sourceListState
 
 		sourceListState.itemSelection.ConnectSelectionChanged(state.sourceSelectionChanged)
-		state.initialized = true
 
 		openBtn := builder.GetObject("openFileBtn").Cast().(*gtk.Button)
 		openBtn.ConnectClicked(state.openFile)
+
+		txProfiles := builder.GetObject("transcodeProfileDropDown").Cast().(*gtk.DropDown)
+		state.profileList = newTranscodeOptionList(txProfiles)
+		txBtn := builder.GetObject("transcodeBtn").Cast().(*gtk.Button)
+		txBtn.ConnectClicked(state.transcodeFile)
+
+		state.loadProfiles()
 		state.loadFiles()
+
+		state.initialized = true
+		go func() {
+			time.Sleep(100 * time.Millisecond)
+			glib.IdleAdd(func() {
+				state.sourceSelected(0, state.sourceList.itemRefs.NItems())
+			})
+		}()
+
 	})
 	return state
 }
@@ -87,6 +106,14 @@ func (w *windowState) openFile() {
 		log.Infof("Got response event from openDialog: %d - %s", responseId, file)
 		w.addFile(file)
 	})
+}
+
+func (w *windowState) loadProfiles() {
+	profileMap := defaults.GetDefaultTranscodeOptions()
+	for name, profile := range profileMap {
+		profile := profile
+		w.profileList.add(name, &profile)
+	}
 }
 
 func (w *windowState) loadFiles() {
@@ -156,7 +183,53 @@ func (w *windowState) addSourceAsset(file string, sa *dao.SourceAsset) {
 		w.sourceList.add(sa)
 
 	}()
+}
 
+func (w *windowState) sourceSelected(position, nItems uint) {
+	if nItems == 0 {
+		return
+	}
+	//selected := w.sourceList.itemRefs.String(position)
+	selected := w.sourceList.itemRefs.String(w.sourceList.itemSelection.Selected())
+	item := w.sourceList.itemDetails[selected]
+
+	labelFilename := w.builder.GetObject("labelFilename").Cast().(*gtk.Label)
+	labelFilename.SetLabel(item.asset.Filename)
+	labelCodec := w.builder.GetObject("labelCodec").Cast().(*gtk.Label)
+	labelCodec.SetLabel(item.asset.Codec)
+	labelDuration := w.builder.GetObject("labelDuration").Cast().(*gtk.Label)
+	labelDuration.SetLabel(fmt.Sprintf("%.02f seconds", item.asset.DurationTime))
+	resolution := fmt.Sprintf("%dx%d", item.asset.Resolution.Width, item.asset.Resolution.Height)
+	labelResolution := w.builder.GetObject("labelResolution").Cast().(*gtk.Label)
+	labelResolution.SetLabel(resolution)
+
+	labelFilesize := w.builder.GetObject("labelSize").Cast().(*gtk.Label)
+	fileInfo, err := os.Stat(item.asset.Filename)
+	if err != nil {
+		labelFilesize.SetLabel("")
+	} else {
+		labelFilesize.SetLabel(fmt.Sprintf("%d", fileInfo.Size()))
+	}
+
+}
+
+func (w *windowState) transcodeFile() {
+	profile := w.profileList.getSelected()
+	source := w.sourceList.getSelectedItem()
+
+	msg := fmt.Sprintf("Transcode %s with profile %s", source.asset.Filename, profile.name)
+	w.status.Push(0, msg)
+
+	to, err := newTranscodeOutputWindow(source.asset, w.daoInstance)
+	if err != nil {
+		w.status.Push(0, fmt.Sprintf("Unable to create transcode output window: %s", err))
+	} else {
+		to.window.Show()
+		go func() {
+			time.Sleep(500 * time.Millisecond)
+			to.startTranscode(profile.name, profile.profile)
+		}()
+	}
 }
 
 func RunUI(db *sql.DB) {

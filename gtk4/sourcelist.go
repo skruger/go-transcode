@@ -18,7 +18,7 @@ type sourceListData struct {
 	itemSelection *gtk.SingleSelection
 }
 
-func newSourceList(view *gtk.ListView) *sourceListData {
+func newSourceList(view *gtk.ListView, selectionChanged func(uint, uint)) *sourceListData {
 	stringList := gtk.NewStringList([]string{})
 	stringSelection := gtk.NewSingleSelection(stringList)
 	listData := &sourceListData{
@@ -28,6 +28,7 @@ func newSourceList(view *gtk.ListView) *sourceListData {
 		factory:       gtk.NewSignalListItemFactory(),
 		itemSelection: stringSelection,
 	}
+	stringSelection.ConnectSelectionChanged(selectionChanged)
 	view.SetModel(stringSelection)
 	listData.factory.ConnectBind(listData.bind)
 	listData.factory.ConnectSetup(listData.setup)
@@ -57,4 +58,9 @@ func (s *sourceListData) add(asset *dao.SourceAsset) {
 		}
 	}
 	s.itemRefs.Append(asset.Filename)
+}
+
+func (s *sourceListData) getSelectedItem() *sourceListItem {
+	selected := s.itemRefs.String(s.itemSelection.Selected())
+	return s.itemDetails[selected]
 }

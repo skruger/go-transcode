@@ -4,6 +4,7 @@ import (
 	"github.com/labstack/gommon/log"
 	"github.com/skruger/privatestudio/database"
 	"github.com/skruger/privatestudio/gtk4"
+	"os"
 )
 
 func main() {
@@ -13,7 +14,8 @@ func main() {
 	}
 	err = database.MigrateUp(db)
 	if err != nil {
-		log.Panic("unable to migrate sql database", err)
+		log.Error("unable to migrate sql database", err)
+		os.Exit(1)
 	}
 
 	gtk4.RunUI(db)

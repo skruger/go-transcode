@@ -5,16 +5,19 @@ import (
 	"github.com/skruger/privatestudio/transcoder/config"
 	"github.com/skruger/privatestudio/transcoder/stages"
 	ffmpeg_go "github.com/u2takey/ffmpeg-go"
+	"path"
 )
 
 type TranscodeSession struct {
-	InputFile string
-	Outputs   []stages.MediaOut
+	InputFile  string
+	Outputs    []stages.MediaOut
+	OutputPath *string
 }
 
-func NewTranscodeSession(file string) *TranscodeSession {
+func NewTranscodeSession(file string, outputPath *string) *TranscodeSession {
 	return &TranscodeSession{
-		InputFile: file,
+		InputFile:  file,
+		OutputPath: outputPath,
 	}
 }
 
@@ -25,6 +28,10 @@ func (ts *TranscodeSession) BuildTranscodeStream(options config.TranscodeOptions
 	ts.Outputs = make([]stages.MediaOut, len(options.Outputs))
 	outputStreams := make([]*ffmpeg_go.Stream, len(options.Outputs))
 	for num, output := range options.Outputs {
+		outputFilename := output.Filename
+		if ts.OutputPath != nil {
+			outputFilename = path.Join(*ts.OutputPath, output.Filename)
+		}
 		filtered := stream.Get(fmt.Sprintf("%d", num)).Filter(
 			"scale",
 			ffmpeg_go.Args{fmt.Sprintf("%d:%d", output.Profile.Width, output.Profile.Height)},
@@ -34,12 +41,14 @@ func (ts *TranscodeSession) BuildTranscodeStream(options config.TranscodeOptions
 			kwargs[key] = val
 		}
 		outputStreams[num] = filtered.Output(
-			output.Filename,
+			outputFilename,
 			kwargs,
 		)
 		ts.Outputs[num] = stages.MediaOut{
 			MediaType: stages.OutputVideo,
-			FileName:  output.Filename,
+			FileName:  outputFilename,
+			Width:     output.Profile.Width,
+			Height:    output.Profile.Height,
 		}
 	}
 
@@ -49,5 +58,6 @@ func (ts *TranscodeSession) BuildTranscodeStream(options config.TranscodeOptions
 		outputStream = outputStream.GlobalArgs(options.GlobalArgs...)
 	}
 
-	return outputStream.ErrorToStdOut(), nil
+	// .ErrorToStdOut()
+	return outputStream, nil
 }

@@ -9,4 +9,6 @@ const (
 type MediaOut struct {
 	MediaType int
 	FileName  string
+	Width     int
+	Height    int
 }

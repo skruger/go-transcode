@@ -20,6 +20,17 @@ type SourceAsset struct {
 	daoInstance *DaoInstance
 }
 
+type TranscodeOutput struct {
+	Id          int64
+	Source      int64
+	Filename    string
+	Filesize    int
+	ProfileName *string
+	Resolution  Resolution
+
+	DaoInstance *DaoInstance
+}
+
 type DaoInstance struct {
 	db *sql.DB
 }

@@ -3,7 +3,6 @@ package database
 import (
 	"database/sql"
 	"embed"
-	"fmt"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/sqlite"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
@@ -34,11 +33,11 @@ func MigrateUp(db *sql.DB) error {
 	}
 
 	version, dirty, err := migration.Version()
-	if dirty {
+	if version > 0 && dirty {
 		log.Infof("Migration marked dirty with version %i and error %s", version, err)
 	}
 	if err != nil {
-		return fmt.Errorf("unable to check migration version: %s", err)
+		log.Infof("unable to check migration version: %s", err)
 	}
 	if version < 1 {
 		return migration.Up()

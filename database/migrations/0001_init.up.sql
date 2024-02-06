@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS transcode_asset (
     id integer not null primary key,
     source int not null,
     filename varchar(256) not null,
+    profile_name varchar(50),
     filesize int null,
     resolution_width int null,
     resolution_height int null,
