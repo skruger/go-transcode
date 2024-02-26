@@ -216,7 +216,7 @@
                           <object class="GtkBox">
                             <property name="orientation">vertical</property>
                             <child>
-                              <object class="GtkListView">
+                              <object class="GtkListView" id="outputList">
                                 <property name="vexpand">True</property>
                               </object>
                             </child>

@@ -1,13 +1,13 @@
 package gtk4
 
 import (
-	"bufio"
 	_ "embed"
 	"fmt"
 	"github.com/diamondburned/gotk4/pkg/glib/v2"
 	"github.com/diamondburned/gotk4/pkg/gtk/v4"
 	"github.com/labstack/gommon/log"
 	"github.com/skruger/privatestudio/dao"
+	"github.com/skruger/privatestudio/transcoder"
 	"github.com/skruger/privatestudio/transcoder/config"
 	"github.com/skruger/privatestudio/transcoder/transcode"
 	"os"
@@ -74,7 +74,7 @@ func (t *transcodeOutput) clickClose() {
 
 func (t *transcodeOutput) startTranscode(profileName string, profile *config.TranscodeOptions) {
 	defer t.finish()
-	t.statusBar.Push(0, fmt.Sprintf("Starting transcode with profile: %s", profileName))
+	t.addStatus(fmt.Sprintf("Starting transcode with profile: %s", profileName))
 
 	t.addLine(fmt.Sprintf("Starting transcode of %s with profile %s\n", t.sourceAsset.Filename, profileName))
 	//t.sourceAsset.Filename
@@ -86,69 +86,37 @@ func (t *transcodeOutput) startTranscode(profileName string, profile *config.Tra
 		t.addLine(fmt.Sprintf("Unable to build transcode stream: %s\n", err))
 	}
 	cmd := stream.Compile()
-	outPipe, err := cmd.StdoutPipe()
+
+	t.addLine(fmt.Sprintf("transcode command: %s\n", cmd.String()))
+
+	runner := transcoder.NewTranscodeRunner(cmd)
+
+	err = runner.Start()
 	if err != nil {
-		t.addLine(fmt.Sprintf("error opening stdout pipe: %s\n", err))
-	}
-	errPipe, err := cmd.StderrPipe()
-	if err != nil {
-		t.addLine(fmt.Sprintf("error opening stdoerr pipe: %s\n", err))
-	}
-
-	t.addLine(cmd.String() + "\n")
-
-	outDone := make(chan interface{})
-	errDone := make(chan interface{})
-
-	go func() {
-		for {
-			if cmd.Process != nil {
-				break
-			}
-		}
-		outReader := bufio.NewReader(outPipe)
-		for {
-			line, err := outReader.ReadString('\n')
-			if err != nil {
-				if err.Error() != "EOF" {
-					t.addLine(fmt.Sprintf("outReader error: %s", err))
-				}
-				break
-			}
-			t.addLine(line)
-		}
-		close(outDone)
-	}()
-
-	go func() {
-		for {
-			if cmd.Process != nil {
-				break
-			}
-		}
-		errReader := bufio.NewReader(errPipe)
-		for {
-			line, err := errReader.ReadString('\n')
-			if err != nil {
-				if err.Error() != "EOF" {
-					t.addLine(fmt.Sprintf("errReader error: %s\n", err))
-				}
-				break
-			}
-			t.addLine(line)
-		}
-		close(errDone)
-	}()
-
-	err = cmd.Start()
-	if err != nil {
-		t.addLine(fmt.Sprintf("Run error: %s\n", err))
+		t.addLine(fmt.Sprintf("error starting transcode: %s", err))
 		return
 	}
 
-	err = cmd.Wait()
+	go func() {
+		for {
+			output, finished := runner.ReceiveLine()
+			if output != nil {
+				if output.IsStatus() {
+					t.addStatus(output.Data)
+				} else {
+					t.addLine(output.Data)
+				}
+
+			}
+			if finished {
+				break
+			}
+		}
+	}()
+
+	err = runner.Wait()
 	if err != nil {
-		t.addLine(fmt.Sprintf("wait error: %s\n", err))
+		t.addLine(fmt.Sprintf("Error waiting for transcode to finish: %s", err))
 	}
 
 	existingOutputs, err := t.dbInstance.GetTranscodeOutputs("where source=?", t.sourceAsset.Id)
@@ -165,19 +133,22 @@ func (t *transcodeOutput) startTranscode(profileName string, profile *config.Tra
 			}
 		}
 		if !outputFound {
-			fileInfo, err := os.Stat(output.FileName)
-			filesize := int(fileInfo.Size())
-			if err == nil && filesize > 0 {
-				t.dbInstance.NewTranscodeOutput(output.FileName, filesize, t.sourceAsset, profileName,
-					dao.Resolution{Width: output.Width, Height: output.Height})
+			fileInfo, statErr := os.Stat(output.FileName)
+			if statErr != nil {
+				t.addLine(fmt.Sprintf("Unable to stat output file: %s\n", statErr))
+			} else {
+				filesize := int(fileInfo.Size())
+				if filesize > 0 {
+					t.dbInstance.NewTranscodeOutput(output.FileName, filesize, t.sourceAsset, profileName,
+						dao.Resolution{Width: output.Width, Height: output.Height})
+				}
+
 			}
 		}
 	}
 
-	<-errDone
-	<-outDone
 	t.addLine("\n\nTranscode Complete\n")
-	t.statusBar.Push(0, "Transcode Complete")
+	t.addStatus("Transcode Complete")
 
 }
 
@@ -186,9 +157,12 @@ func (t *transcodeOutput) addLine(line string) {
 		buffer := t.textOutput.Buffer()
 		end := buffer.EndIter()
 		buffer.Insert(end, line)
-		//scrollWindow := t.builder.GetObject("textScroll").Cast().(*gtk.ScrolledWindow)
-		//scrollBar := scrollWindow.VScrollbar()
-		//scrollBar.
+	})
+}
+
+func (t *transcodeOutput) addStatus(line string) {
+	glib.IdleAdd(func() {
+		t.statusBar.Push(0, line)
 	})
 }
 

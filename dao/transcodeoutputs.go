@@ -41,3 +41,9 @@ func (d *DaoInstance) GetTranscodeOutputs(where string, args ...any) (outputs []
 
 	return outputs, err
 }
+
+func (d *DaoInstance) DeleteTranscodeOutput(id int64) error {
+	query := "DELETE FROM transcode_asset WHERE id = ?"
+	_, err := d.db.Exec(query, id)
+	return err
+}

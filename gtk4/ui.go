@@ -27,9 +27,6 @@ const (
 //go:embed privatestudio.ui
 var psXML string
 
-//go:embed sourcelistitem.ui
-var listItemXML []byte
-
 type windowState struct {
 	initialized    bool
 	builder        *gtk.Builder
@@ -37,6 +34,7 @@ type windowState struct {
 	app            *gtk.Application
 	status         *gtk.Statusbar
 	sourceList     *sourceListData
+	outputList     *outputListData
 	profileList    *transcodeOptionData
 	statusMessages chan string
 	daoInstance    *dao.DaoInstance
@@ -60,12 +58,14 @@ func newWindowState(db *sql.DB) *windowState {
 		sourcesList := builder.GetObject("sourcesList").Cast().(*gtk.ListView)
 		sourceListState := newSourceList(sourcesList, state.sourceSelected)
 
+		outputList := builder.GetObject("outputList").Cast().(*gtk.ListView)
+		outputListState := newOutputList(outputList)
+
 		state.builder = builder
 		state.window = window
 		state.status = status
 		state.sourceList = sourceListState
-
-		sourceListState.itemSelection.ConnectSelectionChanged(state.sourceSelectionChanged)
+		state.outputList = outputListState
 
 		openBtn := builder.GetObject("openFileBtn").Cast().(*gtk.Button)
 		openBtn.ConnectClicked(state.openFile)
@@ -74,6 +74,9 @@ func newWindowState(db *sql.DB) *windowState {
 		state.profileList = newTranscodeOptionList(txProfiles)
 		txBtn := builder.GetObject("transcodeBtn").Cast().(*gtk.Button)
 		txBtn.ConnectClicked(state.transcodeFile)
+
+		deleteOutputBtn := builder.GetObject("transcodeOutputDelete").Cast().(*gtk.Button)
+		deleteOutputBtn.ConnectClicked(state.deleteOutput)
 
 		state.loadProfiles()
 		state.loadFiles()
@@ -88,11 +91,6 @@ func newWindowState(db *sql.DB) *windowState {
 
 	})
 	return state
-}
-
-func (w *windowState) sourceSelectionChanged(position, nItems uint) {
-	w.status.Push(0, fmt.Sprintf("Selected: %d", position))
-
 }
 
 func (w *windowState) openFile() {
@@ -132,7 +130,7 @@ func (w *windowState) addFile(file string) {
 	if err != nil {
 		sa, err = w.daoInstance.NewSourceAsset(file)
 		if err != nil {
-			w.status.Push(0, fmt.Sprintf("Unable to add file to DB: %s", err))
+			w.safePushStatus(fmt.Sprintf("Unable to add file to DB: %s", err))
 			return
 		}
 	}
@@ -141,11 +139,11 @@ func (w *windowState) addFile(file string) {
 
 func (w *windowState) addSourceAsset(file string, sa *dao.SourceAsset) {
 
-	w.status.Push(0, fmt.Sprintf("Opened file: %s (%d)", file, sa.Id))
+	w.safePushStatus(fmt.Sprintf("Opened file: %s (%d)", file, sa.Id))
 	go func() {
 		ffProbe, err := transcoder.GetVideoMetadata(file)
 		if err != nil {
-			w.status.Push(0, fmt.Sprintf("File %s: %s", file, err))
+			w.safePushStatus(fmt.Sprintf("File %s: %s", file, err))
 			return
 		}
 		fpsParts := strings.Split(ffProbe.Streams[0].RFrameRate, "/")
@@ -180,7 +178,9 @@ func (w *windowState) addSourceAsset(file string, sa *dao.SourceAsset) {
 		if err != nil {
 			log.Errorf("unable to save source asset: %s", err)
 		}
-		w.sourceList.add(sa)
+		glib.IdleAdd(func() {
+			w.sourceList.add(sa)
+		})
 
 	}()
 }
@@ -189,27 +189,41 @@ func (w *windowState) sourceSelected(position, nItems uint) {
 	if nItems == 0 {
 		return
 	}
-	//selected := w.sourceList.itemRefs.String(position)
-	selected := w.sourceList.itemRefs.String(w.sourceList.itemSelection.Selected())
-	item := w.sourceList.itemDetails[selected]
 
-	labelFilename := w.builder.GetObject("labelFilename").Cast().(*gtk.Label)
-	labelFilename.SetLabel(item.asset.Filename)
-	labelCodec := w.builder.GetObject("labelCodec").Cast().(*gtk.Label)
-	labelCodec.SetLabel(item.asset.Codec)
-	labelDuration := w.builder.GetObject("labelDuration").Cast().(*gtk.Label)
-	labelDuration.SetLabel(fmt.Sprintf("%.02f seconds", item.asset.DurationTime))
-	resolution := fmt.Sprintf("%dx%d", item.asset.Resolution.Width, item.asset.Resolution.Height)
-	labelResolution := w.builder.GetObject("labelResolution").Cast().(*gtk.Label)
-	labelResolution.SetLabel(resolution)
+	glib.IdleAdd(func() {
+		selected := w.sourceList.itemRefs.String(w.sourceList.itemSelection.Selected())
+		item := w.sourceList.itemDetails[selected]
 
-	labelFilesize := w.builder.GetObject("labelSize").Cast().(*gtk.Label)
-	fileInfo, err := os.Stat(item.asset.Filename)
-	if err != nil {
-		labelFilesize.SetLabel("")
-	} else {
-		labelFilesize.SetLabel(fmt.Sprintf("%d", fileInfo.Size()))
-	}
+		labelFilename := w.builder.GetObject("labelFilename").Cast().(*gtk.Label)
+		labelFilename.SetLabel(item.asset.Filename)
+		labelCodec := w.builder.GetObject("labelCodec").Cast().(*gtk.Label)
+		labelCodec.SetLabel(item.asset.Codec)
+		labelDuration := w.builder.GetObject("labelDuration").Cast().(*gtk.Label)
+		labelDuration.SetLabel(fmt.Sprintf("%.02f seconds", item.asset.DurationTime))
+		resolution := fmt.Sprintf("%dx%d", item.asset.Resolution.Width, item.asset.Resolution.Height)
+		labelResolution := w.builder.GetObject("labelResolution").Cast().(*gtk.Label)
+		labelResolution.SetLabel(resolution)
+
+		labelFilesize := w.builder.GetObject("labelSize").Cast().(*gtk.Label)
+		fileInfo, err := os.Stat(item.asset.Filename)
+		if err != nil {
+			labelFilesize.SetLabel("")
+		} else {
+			labelFilesize.SetLabel(fmt.Sprintf("%d", fileInfo.Size()))
+		}
+		outputs, err := w.daoInstance.GetTranscodeOutputs("WHERE source = ? ORDER BY profile_name, filename", item.asset.Id)
+		if err != nil {
+			w.status.Push(0, fmt.Sprintf("Unable to get transcode output list: %s", err))
+		} else {
+			w.outputList.updateOutputList(outputs)
+		}
+	})
+}
+
+func (w *windowState) safePushStatus(line string) {
+	glib.IdleAdd(func() {
+		w.status.Push(0, line)
+	})
 
 }
 
@@ -229,6 +243,18 @@ func (w *windowState) transcodeFile() {
 			time.Sleep(500 * time.Millisecond)
 			to.startTranscode(profile.name, profile.profile)
 		}()
+	}
+}
+
+func (w *windowState) deleteOutput() {
+	selection := w.outputList.getSelected()
+	for _, item := range selection {
+		w.outputList.remove(item.Filename)
+		_ = os.Remove(item.Filename)
+		err := w.daoInstance.DeleteTranscodeOutput(item.Id)
+		if err != nil {
+			log.Errorf("Unable to delete transcode outputs: %s", err)
+		}
 	}
 }
 
