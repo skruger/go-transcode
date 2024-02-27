@@ -1,0 +1,8 @@
+{{define "content"}}
+    <form method="post">
+        <input type="hidden" name="csrf_token" value="{{.csrf}}" />
+        <input type="text" name="username" />
+        <input type="password" name="password" />
+        <input type="submit" value="Login"/>
+    </form>
+{{end}}

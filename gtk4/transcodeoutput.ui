@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 0.16.0 -->
+<interface>
+  <requires lib="gtk" version="4.6"/>
+  <object class="GtkWindow" id="txOutputWindow">
+    <property name="default-height">600</property>
+    <property name="default-width">800</property>
+    <property name="title">Transcode Output</property>
+    <child>
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkScrolledWindow" id="textScroll">
+            <child>
+              <object class="GtkTextView" id="textOutput">
+                <property name="hexpand">True</property>
+                <property name="vexpand">True</property>
+                <property name="vscroll-policy">natural</property>
+                <property name="wrap-mode">char</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <child>
+              <object class="GtkProgressBar" id="progressBar">
+                <property name="hexpand">True</property>
+                <property name="valign">center</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="closeBtn">
+                <property name="label">Close</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkStatusbar" id="statusBar"/>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

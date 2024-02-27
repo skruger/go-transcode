@@ -3,13 +3,14 @@ package main
 import (
 	"bytes"
 	"flag"
+	"log"
+	"os"
+	"time"
+
 	tc "github.com/skruger/privatestudio/transcoder/config"
 	"github.com/skruger/privatestudio/transcoder/streampackage"
 	"github.com/skruger/privatestudio/transcoder/transcode"
 	"gopkg.in/yaml.v3"
-	"log"
-	"os"
-	"time"
 )
 
 func main() {
@@ -48,7 +49,8 @@ func main() {
 	inFileName := flag.Args()[0]
 	log.Printf("transcoding %s", inFileName)
 
-	ts := transcode.NewTranscodeSession(inFileName)
+	outputDir := "."
+	ts := transcode.NewTranscodeSession(inFileName, &outputDir)
 
 	tsStream, err := ts.BuildTranscodeStream(options)
 	if err != nil {

@@ -1,0 +1,27 @@
+outputs:
+  - profile:
+      width: 854
+      height: 480
+      outputoptions:
+        b:a: 96k
+        b:v: 1200k
+        c:a: aac
+        f: mp4
+        map: a
+        vcodec: h264_qsv
+    filename: output_480_1200k.mp4
+  - profile:
+      width: 640
+      height: 360
+      outputoptions:
+        acodec: aac
+        b:a: 96k
+        b:v: 700k
+        c:a: aac
+        f: mp4
+        map: a
+        vcodec: h264_qsv
+    filename: output_360_700k.mp4
+
+globalargs:
+  - "-y"
