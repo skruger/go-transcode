@@ -6,6 +6,7 @@
   <object class="GtkApplicationWindow" id="psMainWindow">
     <property name="default-height">800</property>
     <property name="default-width">1000</property>
+    <property name="icon-name">camera-video</property>
     <property name="show-menubar">True</property>
     <property name="title">Private Studio</property>
     <child>
@@ -57,12 +58,6 @@
                         <property name="icon-name">media-record</property>
                         <property name="label">Transcode</property>
                         <property name="tooltip-text">Transcode Asset</property>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="packageBtn">
-                        <property name="icon-name">package-x-generic</property>
-                        <property name="tooltip-text">Package Asset</property>
                       </object>
                     </child>
                     <child>
@@ -223,25 +218,16 @@
                             <child>
                               <object class="GtkBox">
                                 <child>
-                                  <object class="GtkButton" id="transcodeOutputDelete">
-                                    <property name="icon-name">user-trash</property>
-                                    <property name="label">Delete Output</property>
-                                    <property name="tooltip-text">Delete Transcode Output</property>
+                                  <object class="GtkButton" id="outputPackageBtn">
+                                    <property name="icon-name">package-x-generic</property>
+                                    <property name="label">Package Output</property>
                                   </object>
                                 </child>
                                 <child>
-                                  <object class="GtkBox">
-                                    <property name="orientation">vertical</property>
-                                    <child>
-                                      <object class="GtkBox"/>
-                                    </child>
-                                    <child>
-                                      <object class="GtkSeparator">
-                                        <property name="margin-end">2</property>
-                                        <property name="margin-start">2</property>
-                                        <property name="orientation">vertical</property>
-                                      </object>
-                                    </child>
+                                  <object class="GtkButton" id="outputDeleteBtn">
+                                    <property name="icon-name">user-trash</property>
+                                    <property name="label">Delete Output</property>
+                                    <property name="tooltip-text">Delete Transcode Output</property>
                                   </object>
                                 </child>
                               </object>
@@ -258,7 +244,7 @@
                           <object class="GtkBox">
                             <property name="orientation">vertical</property>
                             <child>
-                              <object class="GtkListView">
+                              <object class="GtkListView" id="packageList">
                                 <property name="vexpand">True</property>
                               </object>
                             </child>

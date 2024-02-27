@@ -122,6 +122,9 @@ func (t *TranscodeRunner) Wait() error {
 	}
 	<-t.errDone
 	<-t.outDone
+	for len(t.outputs) > 0 {
+		time.Sleep(5 * time.Millisecond)
+	}
 	t.done = true
 	return err
 }
@@ -135,7 +138,7 @@ func progressScanner(data []byte, atEOF bool) (advance int, token []byte, err er
 		}
 		return 0, data, bufio.ErrFinalToken
 	}
-	if r+1 != n {
+	if r > -1 && r+1 != n {
 		return r + 1, data[:r+1], nil
 	}
 	return n + 1, data[:n+1], nil

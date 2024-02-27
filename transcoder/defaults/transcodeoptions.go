@@ -1,20 +1,19 @@
 package defaults
 
 import (
+	"embed"
 	_ "embed"
+	"fmt"
+	log2 "github.com/labstack/gommon/log"
 	"github.com/skruger/privatestudio/transcoder/config"
 	"gopkg.in/yaml.v3"
 	"log"
+	"path"
+	"strings"
 )
 
-//go:embed transcodeoptions/low-qsv.yaml
-var lowQsvYaml []byte
-
-//go:embed transcodeoptions/medium-qsv.yaml
-var mediumQsvYaml []byte
-
-//go:embed transcodeoptions/low-x264.yaml
-var lowX264Yaml []byte
+//go:embed transcodeoptions/*.yaml
+var fs embed.FS
 
 func loadTranscodeOptions(yamlData []byte) config.TranscodeOptions {
 	var profile config.TranscodeOptions
@@ -26,9 +25,23 @@ func loadTranscodeOptions(yamlData []byte) config.TranscodeOptions {
 }
 
 func GetDefaultTranscodeOptions() map[string]config.TranscodeOptions {
-	return map[string]config.TranscodeOptions{
-		"low_qsv":    loadTranscodeOptions(lowQsvYaml),
-		"medium_qsv": loadTranscodeOptions(mediumQsvYaml),
-		"low_x264":   loadTranscodeOptions(lowX264Yaml),
+	options := map[string]config.TranscodeOptions{}
+	entries, err := fs.ReadDir("transcodeoptions")
+	if err != nil {
+		log2.Errorf("Unable to load default transcode options: %s", err)
 	}
+	for _, option := range entries {
+		filename := option.Name()
+		if path.Ext(filename) == ".yaml" {
+			log2.Infof("Found options file: %s", filename)
+			name := strings.TrimSuffix(filename, path.Ext(filename))
+			yamlBytes, readErr := fs.ReadFile(fmt.Sprintf("transcodeoptions/%s", filename))
+			if readErr != nil {
+				log2.Infof("Unable to load data for default profile '%s': %s", name, err)
+			} else {
+				options[name] = loadTranscodeOptions(yamlBytes)
+			}
+		}
+	}
+	return options
 }

@@ -75,7 +75,10 @@ func newWindowState(db *sql.DB) *windowState {
 		txBtn := builder.GetObject("transcodeBtn").Cast().(*gtk.Button)
 		txBtn.ConnectClicked(state.transcodeFile)
 
-		deleteOutputBtn := builder.GetObject("transcodeOutputDelete").Cast().(*gtk.Button)
+		packageBtn := builder.GetObject("outputPackageBtn").Cast().(*gtk.Button)
+		packageBtn.ConnectClicked(state.packageOutput)
+
+		deleteOutputBtn := builder.GetObject("outputDeleteBtn").Cast().(*gtk.Button)
 		deleteOutputBtn.ConnectClicked(state.deleteOutput)
 
 		state.loadProfiles()
@@ -244,6 +247,15 @@ func (w *windowState) transcodeFile() {
 			to.startTranscode(profile.name, profile.profile)
 		}()
 	}
+}
+
+func (w *windowState) packageOutput() {
+	selection := w.outputList.getSelected()
+	files := []string{}
+	for _, item := range selection {
+		files = append(files, item.Filename)
+	}
+	w.safePushStatus(fmt.Sprintf("Package files: %s", strings.Join(files, ", ")))
 }
 
 func (w *windowState) deleteOutput() {

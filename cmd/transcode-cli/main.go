@@ -49,7 +49,8 @@ func main() {
 	inFileName := flag.Args()[0]
 	log.Printf("transcoding %s", inFileName)
 
-	ts := transcode.NewTranscodeSession(inFileName)
+	outputDir := "."
+	ts := transcode.NewTranscodeSession(inFileName, &outputDir)
 
 	tsStream, err := ts.BuildTranscodeStream(options)
 	if err != nil {
